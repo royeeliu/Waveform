@@ -13,10 +13,13 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
-        <Rectangle Fill="Black"/>
+        <Border x:Name="waveformBorlder" Background="Black">
+            <Image x:Name="waveformImage"/>
+        </Border>
         <StackPanel Grid.Row="1">
             <StackPanel Orientation="Horizontal">
                 <Button x:Name="fileButton" Margin="5" Content="Load File" Click="FileButton_Click"/>
+                <Button x:Name="pauseButton" Margin="5" Content="Pause" Click="PauseButton_Click"/>
             </StackPanel>
             <Border x:Name="StatusBorder" Margin="0,0,0,0">
                 <ScrollViewer VerticalScrollMode="Auto"  VerticalScrollBarVisibility="Auto" MaxHeight="200">

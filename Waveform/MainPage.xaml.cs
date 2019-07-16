@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -26,14 +27,32 @@ namespace Waveform
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        AudioPlayer audioPlayer;
+        AudioPlayer audioPlayer = new AudioPlayer();
+        WaveformRenderer waveformRenderer;
         AppViewModel viewModel;
 
         public MainPage()
         {
             this.InitializeComponent();
-            this.audioPlayer = new AudioPlayer();
-            this.viewModel = new AppViewModel(this.audioPlayer);
+
+            waveformRenderer = new WaveformRenderer(this.Dispatcher);
+            audioPlayer.WaveformRenderer = waveformRenderer;
+            viewModel = new AppViewModel(audioPlayer);
+
+            waveformBorlder.SizeChanged += WaveformBorlder_SizeChanged;
+            waveformImage.SizeChanged += WaveformImage_SizeChanged;
+        }
+
+        private void WaveformImage_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+        }
+
+        private void WaveformBorlder_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            int widht = (int)(waveformBorlder.ActualWidth + 0.5);
+            int height = (int)(waveformBorlder.ActualHeight + 0.5);
+            waveformRenderer.UpdateTargetSize(widht, height);
+            waveformImage.Source = waveformRenderer.ImageSource;
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -65,8 +84,28 @@ namespace Waveform
                 return;
             }
 
-            await this.audioPlayer.LoadFileAsync(file);
-            this.audioPlayer.Play();
+            await audioPlayer.LoadFileAsync(file);
+            TogglePlay();
+            audioPlayer.Play();
+        }
+
+        private void PauseButton_Click(object sender, RoutedEventArgs e)
+        {
+            TogglePlay();
+        }
+
+        private void TogglePlay()
+        {
+            if (audioPlayer.IsPaused)
+            {
+                audioPlayer.Play();
+                pauseButton.Content = "Pause";
+            }
+            else
+            {
+                audioPlayer.Pause();
+                pauseButton.Content = "Play";
+            }
         }
     }
 }

@@ -1,9 +1,12 @@
-﻿using System;
+﻿using AudioEffects;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.Foundation.Collections;
 using Windows.Media.Audio;
+using Windows.Media.Effects;
 using Windows.Media.Render;
 using Windows.Storage;
 
@@ -12,7 +15,7 @@ namespace Waveform.Models
     class AudioPlayer : IDisposable
     {
         private AudioGraph graph;
-        private AudioFileInputNode fileInput;
+        private AudioFileInputNode fileInputNode;
         private AudioDeviceOutputNode deviceOutput;
 
         public AudioPlayer()
@@ -21,8 +24,9 @@ namespace Waveform.Models
 
         public void Dispose()
         {
+            WaveformRenderer = null;
             graph?.Dispose();
-            fileInput?.Dispose();
+            fileInputNode?.Dispose();
             deviceOutput?.Dispose();
         }
 
@@ -30,6 +34,10 @@ namespace Waveform.Models
         {
             await CreateAudioGraph();
         }
+
+        public IWaveformRenderer WaveformRenderer { get; set; }
+
+        public bool IsPaused { get; private set; }
 
         public async Task LoadFileAsync(StorageFile file)
         {
@@ -41,28 +49,37 @@ namespace Waveform.Models
                 return;
             }
 
-            fileInput = fileInputResult.FileInputNode;
+            fileInputNode = fileInputResult.FileInputNode;
 
-            if (fileInput.Duration <= TimeSpan.FromSeconds(3))
+            if (fileInputNode.Duration <= TimeSpan.FromSeconds(3))
             {
                 // Imported file is too short
                 //rootPage.NotifyUser("Please pick an audio file which is longer than 3 seconds", NotifyType.ErrorMessage);
-                fileInput.Dispose();
-                fileInput = null;
+                fileInputNode.Dispose();
+                fileInputNode = null;
                 return;
             }
 
-            fileInput.AddOutgoingConnection(deviceOutput);
+            fileInputNode.AddOutgoingConnection(deviceOutput);
             //fileButton.Background = new SolidColorBrush(Colors.Green);
 
             // Trim the file: set the start time to 3 seconds from the beginning
             // fileInput.EndTime can be used to trim from the end of file
-            fileInput.StartTime = TimeSpan.FromSeconds(3);
+            //fileInput.StartTime = TimeSpan.FromSeconds(3);
 
             // Enable buttons in UI to start graph, loop and change playback speed factor
             //graphButton.IsEnabled = true;
             //loopToggle.IsEnabled = true;
             //playSpeedSlider.IsEnabled = true;
+
+            if (WaveformRenderer != null)
+            {
+                WaveformBridgeDefinition definition = new WaveformBridgeDefinition();
+                definition.Renderer = WaveformRenderer;
+                fileInputNode.EffectDefinitions.Add(definition);
+            }
+
+            IsPaused = true;
         }
 
         private async Task CreateAudioGraph()
@@ -99,11 +116,13 @@ namespace Waveform.Models
         public void Play()
         {
             graph.Start();
+            IsPaused = false;
         }
 
         public void Pause()
         {
             graph.Stop();
+            IsPaused = true;
         }
     }
 }
